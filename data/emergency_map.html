@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_56b36271c34158ec1872c83199d02de4 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_56b36271c34158ec1872c83199d02de4" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_56b36271c34158ec1872c83199d02de4 = L.map(
+                "map_56b36271c34158ec1872c83199d02de4",
+                {
+                    center: [13.0569, 80.2425],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 14,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_bc57c106592c099ee867d7bcefc1f519 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_bc57c106592c099ee867d7bcefc1f519.addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var marker_64c7e6afdc9f78faaeab1328d2a3c3a8 = L.marker(
+                [13.0569, 80.2425],
+                {
+}
+            ).addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var icon_22d869ebbb22e4b662affca0b5f9633d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "exclamation-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_9156d2138dc35aec2678715e2e062d87 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0908a850acf20e759feec42fa0f0bdc0 = $(`<div id="html_0908a850acf20e759feec42fa0f0bdc0" style="width: 100.0%; height: 100.0%;">🚨 Accident Location</div>`)[0];
+                popup_9156d2138dc35aec2678715e2e062d87.setContent(html_0908a850acf20e759feec42fa0f0bdc0);
+            
+        
+
+        marker_64c7e6afdc9f78faaeab1328d2a3c3a8.bindPopup(popup_9156d2138dc35aec2678715e2e062d87)
+        ;
+
+        
+    
+    
+                marker_64c7e6afdc9f78faaeab1328d2a3c3a8.setIcon(icon_22d869ebbb22e4b662affca0b5f9633d);
+            
+    
+            var marker_969c9755df8b58f70b836aadb0414eff = L.marker(
+                [13.0586646, 80.2428501],
+                {
+}
+            ).addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var icon_e3f58f17adc450fc5f779cf0274487d9 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "plus-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_5b04c3b66bb8fe98c2ece59ab48f1ccb = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_d5028a86b4e501ed187e7d69d932aa68 = $(`<div id="html_d5028a86b4e501ed187e7d69d932aa68" style="width: 100.0%; height: 100.0%;">🏥 Meenakshi Hospital & Childrens Hospital (0.20 km)</div>`)[0];
+                popup_5b04c3b66bb8fe98c2ece59ab48f1ccb.setContent(html_d5028a86b4e501ed187e7d69d932aa68);
+            
+        
+
+        marker_969c9755df8b58f70b836aadb0414eff.bindPopup(popup_5b04c3b66bb8fe98c2ece59ab48f1ccb)
+        ;
+
+        
+    
+    
+                marker_969c9755df8b58f70b836aadb0414eff.setIcon(icon_e3f58f17adc450fc5f779cf0274487d9);
+            
+    
+            var marker_2de216f2fd5a23f7682e3264db13d4c9 = L.marker(
+                [13.057357157394225, 80.2459049485268],
+                {
+}
+            ).addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var icon_9f8a044c240d787ab709c7631a68ffd0 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "plus-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_38283f1d0402303910afa7b313306b89 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_ebdd0e138c0cde3b65e1e126a0d9bdf3 = $(`<div id="html_ebdd0e138c0cde3b65e1e126a0d9bdf3" style="width: 100.0%; height: 100.0%;">🏥 The Child Trust Medical Research Foundation (0.37 km)</div>`)[0];
+                popup_38283f1d0402303910afa7b313306b89.setContent(html_ebdd0e138c0cde3b65e1e126a0d9bdf3);
+            
+        
+
+        marker_2de216f2fd5a23f7682e3264db13d4c9.bindPopup(popup_38283f1d0402303910afa7b313306b89)
+        ;
+
+        
+    
+    
+                marker_2de216f2fd5a23f7682e3264db13d4c9.setIcon(icon_9f8a044c240d787ab709c7631a68ffd0);
+            
+    
+            var marker_dd1e3b4e58bb7cdc1498d4701f57467a = L.marker(
+                [13.0606718, 80.2432201],
+                {
+}
+            ).addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var icon_6e8c3be9a2e48d3ade55e77604644659 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "plus-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_a696ed4a10c06c0ef99a308b05e321f1 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_005bd99a72e9cd264015e891bf1c9c72 = $(`<div id="html_005bd99a72e9cd264015e891bf1c9c72" style="width: 100.0%; height: 100.0%;">🏥 Medindia Hospitals, Chennai (0.42 km)</div>`)[0];
+                popup_a696ed4a10c06c0ef99a308b05e321f1.setContent(html_005bd99a72e9cd264015e891bf1c9c72);
+            
+        
+
+        marker_dd1e3b4e58bb7cdc1498d4701f57467a.bindPopup(popup_a696ed4a10c06c0ef99a308b05e321f1)
+        ;
+
+        
+    
+    
+                marker_dd1e3b4e58bb7cdc1498d4701f57467a.setIcon(icon_6e8c3be9a2e48d3ade55e77604644659);
+            
+    
+            var marker_be6c82ac7f56e7e122f9950f44aacdab = L.marker(
+                [13.048651, 80.2494881],
+                {
+}
+            ).addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var icon_433237ecc5e762782467e7d6b5d1b798 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkblue",
+  "iconColor": "white",
+  "icon": "home",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_ccb558b9e98b03e613698fe121a5cced = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_999b45f9fa028bc20e91a251f5889542 = $(`<div id="html_999b45f9fa028bc20e91a251f5889542" style="width: 100.0%; height: 100.0%;">🚔 Teynampet E3 PS (1.19 km)</div>`)[0];
+                popup_ccb558b9e98b03e613698fe121a5cced.setContent(html_999b45f9fa028bc20e91a251f5889542);
+            
+        
+
+        marker_be6c82ac7f56e7e122f9950f44aacdab.bindPopup(popup_ccb558b9e98b03e613698fe121a5cced)
+        ;
+
+        
+    
+    
+                marker_be6c82ac7f56e7e122f9950f44aacdab.setIcon(icon_433237ecc5e762782467e7d6b5d1b798);
+            
+    
+            var marker_f25c5dfb8f5fdb28e963cbbe89976ebc = L.marker(
+                [13.059835306298101, 80.25479714331382],
+                {
+}
+            ).addTo(map_56b36271c34158ec1872c83199d02de4);
+        
+    
+            var icon_b4f010d4e948d2d356250cca3e2a93c3 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkblue",
+  "iconColor": "white",
+  "icon": "home",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c13d79de6a4a3f53a875cb50366c7fe4 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_977dc8b8dacae0a975a9ad38b88ab83c = $(`<div id="html_977dc8b8dacae0a975a9ad38b88ab83c" style="width: 100.0%; height: 100.0%;">🚔 F4 Greams Road PS (1.37 km)</div>`)[0];
+                popup_c13d79de6a4a3f53a875cb50366c7fe4.setContent(html_977dc8b8dacae0a975a9ad38b88ab83c);
+            
+        
+
+        marker_f25c5dfb8f5fdb28e963cbbe89976ebc.bindPopup(popup_c13d79de6a4a3f53a875cb50366c7fe4)
+        ;
+
+        
+    
+    
+                marker_f25c5dfb8f5fdb28e963cbbe89976ebc.setIcon(icon_b4f010d4e948d2d356250cca3e2a93c3);
+            
+</script>
+</html>

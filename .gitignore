@@ -1,0 +1,10 @@
+.env.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+cache/
+temp_audio.wav
+.vscode/
+*.log
