@@ -593,7 +593,7 @@ def build_emergency_map(accident_lat, accident_lon, hospitals_df, police_df):
 
 @st.cache_resource
 def load_whisper_model():
-    return whisper.load_model("small")
+    return whisper.load_model("tiny")
 
 
 def transcribe_audio_bytes(audio_bytes):
