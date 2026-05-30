@@ -125,15 +125,18 @@ def analyze_accident_image(image_bytes, mime_type="image/jpeg"):
         return None, None
 
     prompt = (
-        "You are an emergency response AI. Look at this accident scene image "
-        "carefully. Based on visible damage, injuries, number of vehicles "
-        "involved, and severity of the scene, classify the accident severity "
-        "as exactly one of: High, Medium, or Low. High = life threatening "
-        "injuries, unconscious people, severe crashes, severe vehicle damage, "
-        "fire, vehicles badly crushed. Medium = visible injuries, moderate "
-        "damage, people hurt but conscious. Low = minor damage, no visible "
-        "injuries, small scratch, fender bender. Respond with ONLY the "
-        "severity level and one sentence explanation."
+        "You are an emergency triage AI analyzing a road accident image. "
+        "Classify severity as High, Medium, or Low based on these rules: "
+        "High = ANY of: severely crushed or deformed vehicles, major structural damage, "
+        "vehicles crumpled or destroyed, multiple vehicles involved in serious collision, "
+        "airbags deployed, vehicle rolled over, emergency responders present, "
+        "nighttime accident with serious damage, blood visible, people on ground. "
+        "Medium = moderate damage, driveable vehicle with visible dents, "
+        "minor injuries visible, single vehicle minor collision. "
+        "Low = minor scratches, parking dents, fender benders, no structural damage. "
+        "IMPORTANT: When in doubt between High and Medium, always choose High. "
+        "Vehicle structural deformation alone is sufficient for High severity. "
+        "Respond with ONLY the severity level and one sentence explanation."
     )
 
     try:
@@ -385,6 +388,9 @@ severity_keyword_rules = {
         "truck crash", "bus accident", "high speed crash", "major accident", "fatal accident",
         "person under vehicle", "pinned under bike", "emergency", "help immediately",
         "save me", "critical", "serious condition", "fainted",
+        "severely injured", "serious injuries", "critically injured",
+        "heavily bleeding", "severe bleeding", "bleeding heavily",
+        "badly injured", "severely hurt", "critical injuries",
     ],
     "medium": [
         "fracture", "broken arm", "broken leg", "injured", "hurt", "wounded", "broken",
