@@ -1,3 +1,4 @@
+import math
 import os
 import pickle
 import re
@@ -16,6 +17,7 @@ import whisper
 from dotenv import load_dotenv
 from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
+from spacy.matcher import PhraseMatcher
 
 from thefuzz import fuzz
 
@@ -92,6 +94,19 @@ def extract_location_from_text(text):
         "besant": "Besant Nagar",
         "nungam": "Nungambakkam",
         "tambaram": "Tambaram",
+        "cmbt": "Koyambedu",
+        "koyambedu bus": "Koyambedu",
+        "phoenix mall": "Velachery",
+        "phoenix": "Velachery",
+        "chennai airport": "Meenambakkam",
+        "airport": "Meenambakkam",
+        "central station": "Park Town",
+        "central": "Park Town",
+        "egmore station": "Egmore",
+        "spencer": "Park Town",
+        "tidel park": "Sholinganallur",
+        "siruseri": "Sholinganallur",
+        "omr": "Sholinganallur",
     }
 
     for short_form, full_form in abbrev_map.items():
@@ -292,11 +307,6 @@ def load_models():
     return model, encoder
 
 
-@st.cache_resource
-def load_whisper_model():
-    return whisper.load_model("tiny")
-
-
 @st.cache_data
 def load_osm_data(cache_buster=0):
     hospitals_path = DATA_DIR / "hospitals.pkl"
@@ -360,103 +370,149 @@ def load_workshop_data(cache_buster=0):
     return workshops
 
 
+severity_keyword_rules = {
+    "no_injury": [
+        "no injury", "no injuries", "no one injured", "not injured", "no bleeding",
+        "safe", "okay", "conscious", "alert", "no casualties",
+    ],
+    "high": [
+        "dead", "died", "death", "unconscious", "not breathing", "can't breathe",
+        "heavy bleeding", "blood everywhere", "bleeding badly", "trapped", "stuck inside",
+        "crushed", "head injury", "skull fracture", "broken neck", "spine injury",
+        "chest injury", "severe pain", "multiple fractures", "body not moving",
+        "heart attack", "seizure", "fire", "vehicle burning", "explosion", "smoke from car",
+        "car upside down", "rollover", "fell from bridge", "fell in ditch", "hit by lorry",
+        "truck crash", "bus accident", "high speed crash", "major accident", "fatal accident",
+        "person under vehicle", "pinned under bike", "emergency", "help immediately",
+        "save me", "critical", "serious condition", "fainted",
+    ],
+    "medium": [
+        "fracture", "broken arm", "broken leg", "injured", "hurt", "wounded", "broken",
+        "pain", "bleeding", "deep cut", "unable to stand", "unable to walk", "collision",
+        "airbag deployed", "passenger injured", "driver injured", "dizziness",
+        "swelling", "neck pain", "back pain", "shoulder pain",
+    ],
+    "low": [
+        "scratch", "small scratch", "minor injury", "slight pain", "little pain", "bruises",
+        "small cut", "vehicle damage", "bumper damage", "mirror broken", "indicator broken",
+        "slow speed accident", "parking accident", "tyre burst", "skid but safe", "fell but okay",
+    ],
+}
+
+negation_words = set(
+    [
+        "no",
+        "not",
+        "without",
+        "never",
+        "cant",
+        "can't",
+        "dont",
+        "don't",
+        "illa",
+        "illai",
+        "illaye",
+        "illaiy",
+        "illaiyya",
+    ]
+)
+
+
+def build_matcher(nlp, rules):
+    matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+    for label in ("no_injury", "high", "medium", "low"):
+        phrases = rules.get(label, [])
+        if phrases:
+            patterns = [nlp.make_doc(p) for p in phrases]
+            matcher.add(label.upper(), patterns)
+    return matcher
+
+
+def is_negated(span):
+    start = max(0, span.start - 3)
+    end = min(len(span.doc), span.end + 3)
+    for tok in span.doc[start:end]:
+        if tok.lower_ in negation_words or tok.dep_ == "neg":
+            return True
+    return False
+
+
+def semantic_clean(text):
+    try:
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction="You are an emergency triage assistant. A panicked person described an accident. Rewrite their message as 1-2 clean sentences preserving ALL facts — injuries, vehicle damage, location, number of people. Do not add anything new. Just clean and complete the sentence."
+        )
+        response = model.generate_content(text)
+        if response and response.text:
+            return response.text.strip()
+        return text
+    except Exception:
+        return text
+
+
 def extract_accident_info(text, nlp):
     doc = nlp(text)
+    matcher = build_matcher(nlp, severity_keyword_rules)
+    matches = matcher(doc)
+    score = 0
+    matched = []
 
-    high_keywords = [
-        "unconscious", "unconcious", "unconscous", "fainted", "faint aachi",
-        "not responding", "not moving", "unable to move", "no response",
-        "head injury", "head bleeding", "bleeding head", "blood coming",
-        "bleeding heavily", "heavy bleeding", "blood loss",
-        "fracture", "bone broke", "bone fracture", "broken bone",
-        "internal bleeding", "chest pain", "breathing problem", "cant breathe",
-        "critical", "serious condition", "life risk", "life threatening",
-        "multiple injuries", "severely", "severe injury", "severely injured",
-        "badly injured", "badly hurt",
-        "hospital urgent", "need ambulance", "ambulance urgent",
-        "coma", "paralyzed", "spine injury", "neck injury", "trapped",
-        "stuck in car", "stuck in vehicle", "fire", "vehicle fire", "car fire",
-        "bike fire", "explosion", "fatal", "death", "died", "dead",
-    ]
-    medium_keywords = [
-        "injured", "hurt", "pain", "wound", "wounded", "cut", "cuts",
-        "bruise", "bruised", "bleeding", "limping", "hand broke", "leg pain",
-        "shoulder pain", "knee pain", "back pain", "arm pain",
-        "mild fracture", "hairline fracture", "sprain", "sprained",
-        "need doctor", "need hospital", "need medical", "dizzy", "dizziness",
-        "vomiting", "nausea", "swelling", "swollen", "burn", "burned",
-        "scratch deep", "road rash", "abrasion", "concussion",
-        "semi conscious", "semi-conscious", "drowsy", "disoriented",
-    ]
-    low_keywords = [
-        "no injury", "no injuries", "no one hurt", "no one injured",
-        "no casualties", "only damage", "just damage", "property damage",
-        "vehicle damage", "bike damage", "car damage", "auto damage",
-        "minor accident", "small accident", "fender bender", "minor damage",
-        "scratched", "dent", "dented", "bumped", "slight damage",
-        "no blood", "everyone ok", "everyone is ok", "we are fine",
-        "no serious injury", "minor injury",
-    ]
-    workshop_keywords = [
-        "bike problem", "car broke", "engine problem", "tyre puncture",
-        "tire puncture", "puncture", "breakdown", "broke down", "vehicle stuck",
-        "towing needed", "need towing", "mechanic needed", "need mechanic",
-        "workshop", "garage", "engine failure", "battery dead", "car wont start",
-        "bike wont start", "gear problem", "brake failure", "brake problem",
-        "accident damage only", "just vehicle damage", "only car damage",
-    ]
+    for match_id, start, end in matches:
+        label = nlp.vocab.strings[match_id].lower()
+        span = doc[start:end]
+        matched.append((label, span.text))
+        if label == "no_injury" or is_negated(span):
+            return {
+                "severity": "Low",
+                "confidence": 1.0,
+                "matched": matched,
+                "locations": [
+                    ent.text for ent in doc.ents if ent.label_ in ["GPE", "LOC", "FAC"]
+                ],
+                "people_count": [
+                    ent.text for ent in doc.ents if ent.label_ == "CARDINAL"
+                ],
+                "original_text": text,
+                "needs_workshop": any(
+                    kw in text.lower() for kw in [
+                        "car damage", "vehicle damage", "bumper", "scratch", "dent",
+                        "tyre", "tire", "mirror broken", "repair", "workshop", "tow"
+                    ]
+                ),
+            }
 
-    text_lower = text.lower()
-    tokens = text_lower.split()
-    negation_phrases = [
-        "no injuries",
-        "no injury",
-        "no one injured",
-        "minor damage only",
-        "no casualties",
-    ]
+    for label, span_text in matched:
+        if label == "high":
+            score += 3
+        elif label == "medium":
+            score += 2
+        elif label == "low":
+            score -= 1
 
-    def fuzzy_match(word, keywords, threshold=85):
-        return any(
-            max(fuzz.ratio(word, keyword), fuzz.partial_ratio(word, keyword)) >= threshold
-            for keyword in keywords
-        )
-
-    if any(fuzzy_match(token, high_keywords) for token in tokens):
+    labels = [m[0] for m in matched]
+    if "high" in labels:
         severity = "High"
-    elif any(fuzzy_match(token, medium_keywords) for token in tokens):
+    elif "medium" in labels:
         severity = "Medium"
-    elif any(phrase in text_lower for phrase in low_keywords):
-        severity = "Low"
     else:
         severity = "Low"
 
-    workshop_hit = any(phrase in text_lower for phrase in workshop_keywords)
-    damage_context = any(
-        phrase in text_lower
-        for phrase in [
-            "property damage",
-            "vehicle damage",
-            "car damage",
-            "bike damage",
-            "auto damage",
-            "only damage",
-            "just damage",
-            "accident damage only",
-        ]
-    )
-    needs_workshop = workshop_hit or (severity == "Low" and damage_context)
-
-    matched_area = extract_location_from_text(text)
-    locations = [matched_area] if matched_area else []
-    numbers = [ent.text for ent in doc.ents if ent.label_ == "CARDINAL"]
+    confidence = 1 / (1 + math.exp(-0.8 * (score)))
 
     return {
         "severity": severity,
-        "needs_workshop": needs_workshop,
-        "locations": locations,
-        "people_count": numbers,
+        "confidence": round(confidence, 3),
+        "matched": matched,
+        "locations": [ent.text for ent in doc.ents if ent.label_ in ["GPE", "LOC", "FAC"]],
+        "people_count": [ent.text for ent in doc.ents if ent.label_ == "CARDINAL"],
         "original_text": text,
+        "needs_workshop": any(
+            kw in text.lower() for kw in [
+                "car damage", "vehicle damage", "bumper", "scratch", "dent",
+                "tyre", "tire", "mirror broken", "repair", "workshop", "tow"
+            ]
+        ),
     }
 
 
@@ -529,15 +585,23 @@ def build_emergency_map(accident_lat, accident_lon, hospitals_df, police_df):
     return m
 
 
+@st.cache_resource
+def load_whisper_model():
+    return whisper.load_model("small")
+
+
 def transcribe_audio_bytes(audio_bytes):
+    if not audio_bytes or len(audio_bytes) < 1000:
+        return ""
     model = load_whisper_model()
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
         temp_file.write(audio_bytes)
         temp_path = temp_file.name
-
     try:
-        result = model.transcribe(temp_path)
+        result = model.transcribe(temp_path, fp16=False)
         return result.get("text", "").strip()
+    except Exception:
+        return ""
     finally:
         try:
             os.remove(temp_path)
@@ -627,8 +691,14 @@ with tab_emergency:
                 start_prompt="Start recording", stop_prompt="Stop recording", format="wav"
             )
             if audio_data and isinstance(audio_data, dict) and audio_data.get("bytes"):
-                audio_text = transcribe_audio_bytes(audio_data["bytes"])
-                st.write("Transcribed audio:", audio_text)
+                with st.spinner("🎙️ Transcribing your voice..."):
+                    raw_transcription = transcribe_audio_bytes(audio_data["bytes"])
+                audio_text = st.text_area(
+                    "Transcribed audio (edit if needed)",
+                    value=raw_transcription,
+                    key="audio_text_edit",
+                    height=80,
+                )
         else:
             st.info("Mic recorder not available. Install streamlit-mic-recorder to enable it.")
 
@@ -653,8 +723,11 @@ with tab_emergency:
         if not input_text and not has_image:
             st.warning("Please provide accident text, record audio, or upload an image.")
         else:
+            cleaned_text = input_text
             if input_text:
-                info = extract_accident_info(input_text, nlp)
+                with st.spinner("🧠 Understanding your description..."):
+                    cleaned_text = semantic_clean(input_text) if GEMINI_API_KEY else input_text
+                    info = extract_accident_info(cleaned_text, nlp)
             else:
                 info = {
                     "severity": "Low",
@@ -706,7 +779,10 @@ with tab_emergency:
                 else "Low"
             )
 
-            location_text_display = info["locations"][0] if info["locations"] else None
+            location_text_display = (
+                extract_location_from_text(cleaned_text)
+                or (info["locations"][0] if info["locations"] else None)
+            )
             people_text_display = ", ".join(info["people_count"]) if info["people_count"] else None
 
             st.session_state.analysis_result = {
@@ -820,7 +896,11 @@ with tab_emergency:
             )
 
             severity = analysis["severity"]
-            needs_workshop = analysis["needs_workshop"] or analysis["image_workshop_hit"]
+            needs_workshop = (
+                analysis["needs_workshop"]
+                or analysis["image_workshop_hit"]
+                or analysis["severity"] == "Low"
+            )
 
             if severity == "High":
                 st.markdown("**Ambulance**")
@@ -871,14 +951,14 @@ with tab_emergency:
                 emergency_map = build_emergency_map(
                     coords[0], coords[1], nearest_hospitals, nearest_police
                 )
-                components.html(emergency_map._repr_html_(), height=600)
+                st.iframe(emergency_map._repr_html_(), height=600)
 
 with tab_blackspot:
     st.subheader("Chennai Blackspot Map")
     blackspot_path = DATA_DIR / "blackspot_map.html"
     if blackspot_path.exists():
         blackspot_html = blackspot_path.read_text(encoding="utf-8")
-        components.html(blackspot_html, height=600)
+        st.iframe(blackspot_html, height=600)
     else:
         st.warning("blackspot_map.html not found. Run day5_blackspot.ipynb first.")
 
