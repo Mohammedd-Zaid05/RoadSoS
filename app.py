@@ -31,6 +31,13 @@ except Exception:
     mic_recorder = None
     MIC_AVAILABLE = False
 
+try:
+    from streamlit_geolocation import streamlit_geolocation
+    GEOLOCATION_AVAILABLE = True
+except Exception:
+    streamlit_geolocation = None
+    GEOLOCATION_AVAILABLE = False
+
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / "data"
 MODELS_DIR = APP_DIR / "models"
@@ -215,6 +222,47 @@ st.markdown(
         font-weight: 700;
         font-size: 18px;
         letter-spacing: 0.5px;
+    }
+    .roadsos-input-hero {
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1.25;
+        margin-bottom: 8px;
+        color: #ffffff;
+    }
+    .roadsos-input-subhero {
+        font-size: 18px;
+        color: #d8dde6;
+        margin-bottom: 10px;
+    }
+    .roadsos-input-panel {
+        background: #151a21;
+        border: 1px solid #2a2f3a;
+        border-radius: 12px;
+        padding: 14px 14px 8px 14px;
+        margin-bottom: 10px;
+    }
+    .roadsos-side-hero {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.3;
+        color: #ffffff;
+        margin-bottom: 12px;
+    }
+    .roadsos-photo-hero {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.3;
+        color: #ffffff;
+        margin: 8px 0 10px 0;
+    }
+    .stButton > button[kind="primary"] {
+        background-color: #E63946;
+        border: 1px solid #E63946;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 20px;
+        min-height: 56px;
     }
     </style>
     """,
@@ -527,6 +575,12 @@ with tab_emergency:
 
     if "analysis_result" not in st.session_state:
         st.session_state.analysis_result = None
+    if "resolved_coords" not in st.session_state:
+        st.session_state.resolved_coords = None
+    if "location_source" not in st.session_state:
+        st.session_state.location_source = None
+    if "request_gps" not in st.session_state:
+        st.session_state.request_gps = False
 
     st.markdown(
         """
@@ -540,31 +594,60 @@ with tab_emergency:
         unsafe_allow_html=True,
     )
 
-    text_input = st.text_area(
-        "Describe the accident", placeholder="Accident near Anna Salai, 2 people injured"
+    st.markdown(
+        """
+        <div class="roadsos-input-hero">Don&apos;t Panic. Take a deep breath and tell us what happened.</div>
+        <div class="roadsos-input-subhero">RoadSoS is here to help.</div>
+        """,
+        unsafe_allow_html=True,
     )
 
+    input_col, voice_col = st.columns([2, 1], vertical_alignment="top")
+
+    with input_col:
+        st.markdown("<div class='roadsos-input-panel'>", unsafe_allow_html=True)
+        text_input = st.text_area(
+            "Describe the accident",
+            placeholder="Accident near Anna Salai, 2 people injured",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    audio_text = ""
+    with voice_col:
+        st.markdown(
+            """
+            <div class="roadsos-input-panel">
+                <div class="roadsos-side-hero">Can&apos;t type ?? no problem, record your message.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if MIC_AVAILABLE:
+            audio_data = mic_recorder(
+                start_prompt="Start recording", stop_prompt="Stop recording", format="wav"
+            )
+            if audio_data and isinstance(audio_data, dict) and audio_data.get("bytes"):
+                audio_text = transcribe_audio_bytes(audio_data["bytes"])
+                st.write("Transcribed audio:", audio_text)
+        else:
+            st.info("Mic recorder not available. Install streamlit-mic-recorder to enable it.")
+
+    st.markdown(
+        '<div class="roadsos-photo-hero">Have a photo? Upload it to help us assess faster.</div>',
+        unsafe_allow_html=True,
+    )
     image_file = None
     if GEMINI_API_KEY:
         image_file = st.file_uploader(
             "Upload accident photo (optional)", type=["jpg", "jpeg", "png"]
         )
 
-    audio_text = ""
-    if MIC_AVAILABLE:
-        st.caption("Optional: record 5 seconds of audio")
-        audio_data = mic_recorder(
-            start_prompt="Start recording", stop_prompt="Stop recording", format="wav"
-        )
-        if audio_data and isinstance(audio_data, dict) and audio_data.get("bytes"):
-            audio_text = transcribe_audio_bytes(audio_data["bytes"])
-            st.write("Transcribed audio:", audio_text)
-    else:
-        st.info("Mic recorder not available. Install streamlit-mic-recorder to enable it.")
-
-    analyze = st.button("Analyze accident")
+    analyze = st.button("🚨 ANALYZE ACCIDENT / HELP", type="primary", use_container_width=True)
 
     if analyze:
+        st.session_state.resolved_coords = None
+        st.session_state.location_source = None
+        st.session_state.request_gps = False
         input_text = text_input.strip() or audio_text.strip()
         has_image = image_file is not None
         if not input_text and not has_image:
@@ -687,15 +770,33 @@ with tab_emergency:
             unsafe_allow_html=True,
         )
 
-        if analysis["location_text_display"] and "resolved_coords" not in st.session_state:
+        if analysis["location_text_display"] and st.session_state.resolved_coords is None:
             st.write("Attempting to geocode:", analysis["location_text_display"])
             st.session_state.resolved_coords = geocode_location(analysis["location_text_display"])
-
-        if "resolved_coords" not in st.session_state:
-            st.session_state.resolved_coords = None
+            if st.session_state.resolved_coords is not None:
+                st.session_state.location_source = "text"
 
         if st.session_state.resolved_coords is None:
-            st.info("We couldn't detect your location. Type your area name clearly:")
+            st.info("We couldn't detect your location. Type your area name clearly or use your current location:")
+            gps_trigger = st.button("Use current location (GPS)", key="use_current_location_button")
+            if gps_trigger:
+                st.session_state.request_gps = True
+
+            if st.session_state.request_gps:
+                if GEOLOCATION_AVAILABLE:
+                    st.caption("Please allow browser location access to continue.")
+                    gps_data = streamlit_geolocation()
+                    if gps_data and gps_data.get("latitude") is not None and gps_data.get("longitude") is not None:
+                        st.session_state.resolved_coords = (
+                            gps_data["latitude"],
+                            gps_data["longitude"],
+                        )
+                        st.session_state.location_source = "gps"
+                        st.session_state.request_gps = False
+                        st.success("Using your current location.")
+                else:
+                    st.warning("GPS support package not found. Install `streamlit-geolocation` to enable this feature.")
+
             retry_location = st.text_input(
                 "Retry location",
                 key="retry_location_input",
@@ -704,6 +805,8 @@ with tab_emergency:
             retry = st.button("Retry location", key="retry_location_button")
             if retry and retry_location.strip():
                 st.session_state.resolved_coords = geocode_location(retry_location.strip())
+                if st.session_state.resolved_coords is not None:
+                    st.session_state.location_source = "manual"
 
         coords = st.session_state.resolved_coords
 
