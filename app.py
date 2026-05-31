@@ -908,13 +908,25 @@ with tab_emergency:
                 or analysis["severity"] == "Low"
             )
 
-            if severity == "High":
-                st.markdown("**Ambulance**")
-                st.link_button("Call Ambulance 108", "tel:108")
+            col1, col2, col3 = st.columns(3)
 
-            if severity in ["High", "Medium"]:
-                st.markdown("**Nearest hospitals**")
-                for _, row in nearest_hospitals.iterrows():
+            with col1:
+                st.markdown("### 🏥 Nearest Hospitals")
+                if severity == "High":
+                    st.link_button("Call Ambulance 108", "tel:108")
+
+                if severity in ["High", "Medium"]:
+                    for _, row in nearest_hospitals.iterrows():
+                        st.markdown(f"- {row['name']} — {row['distance_km']:.2f} km")
+                        maps_url = (
+                            "https://www.google.com/maps/dir/?api=1"
+                            f"&destination={row['lat']},{row['lon']}"
+                        )
+                        st.link_button("Open in Google Maps", maps_url)
+
+            with col2:
+                st.markdown("### 🚔 Nearest Police Stations")
+                for _, row in nearest_police.iterrows():
                     st.markdown(f"- {row['name']} — {row['distance_km']:.2f} km")
                     maps_url = (
                         "https://www.google.com/maps/dir/?api=1"
@@ -922,36 +934,28 @@ with tab_emergency:
                     )
                     st.link_button("Open in Google Maps", maps_url)
 
-            st.markdown("**Nearest police stations**")
-            for _, row in nearest_police.iterrows():
-                st.markdown(f"- {row['name']} — {row['distance_km']:.2f} km")
-                maps_url = (
-                    "https://www.google.com/maps/dir/?api=1"
-                    f"&destination={row['lat']},{row['lon']}"
-                )
-                st.link_button("Open in Google Maps", maps_url)
-
-            if needs_workshop:
-                if workshops is None or workshops.empty:
-                    st.warning("Workshop data not available right now.")
-                else:
-                    workshop_points = workshops.copy()
-                    workshop_points["distance_km"] = workshop_points.apply(
-                        lambda row: geodesic(
-                            (coords[0], coords[1]), (row["lat"], row["lon"])
-                        ).km,
-                        axis=1,
-                    )
-                    nearest_workshops = workshop_points.nsmallest(3, "distance_km")
-
-                    st.markdown("**Nearest workshops**")
-                    for _, row in nearest_workshops.iterrows():
-                        st.markdown(f"- {row['name']} — {row['distance_km']:.2f} km")
-                        maps_url = (
-                            "https://www.google.com/maps/dir/?api=1"
-                            f"&destination={row['lat']},{row['lon']}"
+            with col3:
+                st.markdown("### 🔧 Nearest Workshops")
+                if needs_workshop:
+                    if workshops is None or workshops.empty:
+                        st.warning("Workshop data not available right now.")
+                    else:
+                        workshop_points = workshops.copy()
+                        workshop_points["distance_km"] = workshop_points.apply(
+                            lambda row: geodesic(
+                                (coords[0], coords[1]), (row["lat"], row["lon"])
+                            ).km,
+                            axis=1,
                         )
-                        st.link_button("Open in Google Maps", maps_url)
+                        nearest_workshops = workshop_points.nsmallest(3, "distance_km")
+
+                        for _, row in nearest_workshops.iterrows():
+                            st.markdown(f"- {row['name']} — {row['distance_km']:.2f} km")
+                            maps_url = (
+                                "https://www.google.com/maps/dir/?api=1"
+                                f"&destination={row['lat']},{row['lon']}"
+                            )
+                            st.link_button("Open in Google Maps", maps_url)
 
             if severity in ["High", "Medium"]:
                 emergency_map = build_emergency_map(
